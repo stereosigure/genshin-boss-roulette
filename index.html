@@ -128,6 +128,7 @@
       align-items: center;
       padding: 24px;
       text-align: center;
+      transition: border-color 0.3s;
     }
 
     .card .boss-name {
@@ -136,14 +137,26 @@
       font-weight: 800;
       line-height: 1.35;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+      transition: color 0.35s ease, text-shadow 0.35s ease, transform 0.35s ease;
     }
 
-    /* Текст статуса */
+    /* Зелёная подсветка выпавшего победителя внутри рамки */
+    .card.winner-card {
+      border-color: rgba(85, 255, 153, 0.5);
+    }
+
+    .card.winner-card .boss-name {
+      color: var(--green-win);
+      text-shadow: 0 0 16px rgba(85, 255, 153, 0.8), 0 0 32px rgba(85, 255, 153, 0.4);
+      transform: scale(1.06);
+    }
+
+    /* Нижняя надпись статуса */
     .result-label {
-      font-size: 18px;
-      font-weight: bold;
-      color: #a4a9b6;
-      min-height: 28px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #7d8596;
+      min-height: 24px;
       text-align: center;
       transition: color 0.2s;
     }
@@ -151,12 +164,6 @@
     .result-label.spinning {
       color: #e0ca97;
       font-weight: normal;
-    }
-
-    .result-label.won {
-      color: var(--green-win);
-      font-weight: bold;
-      text-shadow: 0 0 10px rgba(85, 255, 153, 0.3);
     }
 
     /* Кнопка запуска */
@@ -355,7 +362,7 @@
   </div>
 
   <script>
-    // Массив боссов: новые боссы просто дописываются в этот список через запятую
+    // Массив боссов: новые боссы дописываются сюда через запятую
     const ALL_BOSSES = [
       "Аждаха",
       "Андриус",
@@ -373,7 +380,7 @@
       "Шахматы"
     ].sort((a, b) => a.localeCompare(b, 'ru'));
 
-    // При каждом открытии / обновлении страницы всегда активны ВСЕ боссы
+    // При каждом открытии/обновлении страницы активны все боссы
     let activeBosses = new Set(ALL_BOSSES);
     let isMuted = localStorage.getItem('is_muted') === 'true';
 
@@ -422,9 +429,15 @@
     // Построение ленты с боссами
     const tape = document.getElementById('tape');
     let sequence = [];
+    let cardElements = [];
+
+    function clearWinnerHighlight() {
+      cardElements.forEach(card => card.classList.remove('winner-card'));
+    }
 
     function rebuildTape() {
       tape.innerHTML = '';
+      cardElements = [];
       const pool = ALL_BOSSES.filter(name => activeBosses.has(name));
       if (!pool.length) return;
 
@@ -444,6 +457,7 @@
 
           card.appendChild(label);
           tape.appendChild(card);
+          cardElements.push(card);
         });
       }
 
@@ -470,6 +484,8 @@
       spinBtn.disabled = true;
       filterBtn.disabled = true;
       rouletteBox.classList.remove('winner');
+      clearWinnerHighlight();
+
       resultLabel.className = 'result-label spinning';
       resultLabel.innerText = 'Судьба выбирает противника...';
 
@@ -481,7 +497,6 @@
       const targetInBase = Math.floor(Math.random() * pool.length);
       const cycles = 4 + Math.floor(Math.random() * 3);
       const targetIndex = Math.min(cycles * pool.length + targetInBase, sequence.length - 1);
-      const chosenName = sequence[targetIndex];
       const targetY = targetIndex * slotPitch;
 
       const duration = 4600;
@@ -513,8 +528,16 @@
           spinBtn.disabled = false;
           filterBtn.disabled = false;
           rouletteBox.classList.add('winner');
-          resultLabel.className = 'result-label won';
-          resultLabel.innerText = chosenName;
+          
+          // Подсвечиваем зеленым выпавшую карточку внутри золотой рамки
+          if (cardElements[targetIndex]) {
+            cardElements[targetIndex].classList.add('winner-card');
+          }
+
+          // Снизу оставляем спокойный статус ожидания, без дублирования имени
+          resultLabel.className = 'result-label';
+          resultLabel.innerText = 'Выбор босса в режиме ожидания...';
+          
           playWin();
         }
       }
@@ -585,7 +608,10 @@
       }
 
       activeBosses = selected;
+      clearWinnerHighlight();
+      rouletteBox.classList.remove('winner');
       rebuildTape();
+
       resultLabel.className = 'result-label';
       resultLabel.innerText = `Активно боссов: ${activeBosses.size}`;
       modalOverlay.classList.remove('open');
