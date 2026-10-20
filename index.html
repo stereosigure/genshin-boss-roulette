@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тейватская Рулетка | Еженедельные боссы</title>
+  <style>
+    :root {
+      --bg-color: #0d111a;
+      --card-bg: #141724;
+      --gold-primary: #d3bc8e;
+      --gold-light: #ecd8ab;
+      --gold-gradient: linear-gradient(135deg, #b89358 0%, #fae3af 100%);
+      --green-win: #55ff99;
+      --card-w: 420px;
+      --card-h: 250px;
+      --card-gap: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      width: 620px;
+      padding: 26px 36px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    /* Верхняя панель */
+    .header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: #1a202c;
+      color: var(--gold-light);
+      border: 2px solid var(--gold-light);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-btn:hover {
+      background-color: #262e3f;
+      border-color: #fae3af;
+      transform: scale(1.05);
+    }
+
+    .header-btn.muted {
+      background-color: #3b2024;
+      color: #ff7d7d;
+      border-color: #ff7d7d;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 2.5px;
+      color: var(--gold-primary);
+      text-align: center;
+    }
+
+    /* Окно барабана */
+    .roulette-box {
+      width: calc(var(--card-w) + 36px);
+      height: calc(var(--card-h) + 36px);
+      background-color: var(--card-bg);
+      border: 2px solid var(--gold-light);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .roulette-box.winner {
+      border: 3px solid #ffdf78;
+      box-shadow: 0 0 25px rgba(255, 223, 120, 0.4);
+    }
+
+    .tape {
+      display: flex;
+      flex-direction: column;
+      gap: var(--card-gap);
+      padding: 18px 0;
+      position: absolute;
+      top: 0;
+      will-change: transform;
+    }
+
+    /* Карточка босса */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      background-color: #1a1e29;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card .fallback-text {
+      color: var(--gold-primary);
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Текст статуса */
+    .result-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: #a4a9b6;
+      min-height: 28px;
+      text-align: center;
+      transition: color 0.2s;
+    }
+
+    .result-label.spinning {
+      color: #e0ca97;
+      font-weight: normal;
+    }
+
+    .result-label.won {
+      color: var(--green-win);
+      font-weight: bold;
+    }
+
+    /* Кнопка запуска */
+    .spin-btn {
+      width: 100%;
+      height: 54px;
+      border-radius: 27px;
+      background: var(--gold-gradient);
+      color: #141724;
+      border: 2px solid var(--gold-light);
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .spin-btn:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .spin-btn:disabled {
+      background: #252833;
+      color: #555a66;
+      border-color: #363b47;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Модальное окно фильтра */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(3px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-content {
+      width: 410px;
+      max-height: 85vh;
+      background-color: #0e121c;
+      border: 2px solid var(--gold-light);
+      border-radius: 12px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--gold-primary);
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    .boss-list {
+      overflow-y: auto;
+      border: 1px solid #232b3b;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 380px;
+    }
+
+    .boss-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    .boss-list::-webkit-scrollbar-thumb {
+      background: #394254;
+      border-radius: 4px;
+    }
+
+    .boss-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #6c7585;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background 0.15s;
+    }
+
+    .boss-item:hover {
+      background: #161e2e;
+    }
+
+    .boss-item.active {
+      color: var(--green-win);
+    }
+
+    /* Кастомный индикатор (красный / зеленый с золотой рамкой) */
+    .indicator {
+      width: 18px;
+      height: 18px;
+      border: 3px solid #3c4454;
+      border-radius: 5px;
+      background-color: #e04a4a;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .boss-item.active .indicator {
+      border-color: var(--gold-light);
+      background-color: #2ee677;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      height: 34px;
+      background-color: #1c2230;
+      color: var(--gold-primary);
+      border: 1px solid #b89358;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      height: 44px;
+      background: var(--gold-gradient);
+      color: #141724;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      :root {
+        --card-w: 300px;
+        --card-h: 180px;
+      }
+      .app-container {
+        width: 100%;
+        padding: 16px;
+      }
+      .modal-content {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="header">
+      <button class="header-btn" id="filterBtn" title="Список боссов">☰</button>
+      <div class="title">ЕЖЕНЕДЕЛЬНЫЙ БОСС</div>
+      <button class="header-btn" id="muteBtn" title="Звук">🔊</button>
+    </div>
+
+    <div class="roulette-box" id="rouletteBox">
+      <div class="tape" id="tape"></div>
+    </div>
+
+    <div class="result-label" id="resultLabel">Выбор босса в режиме ожидания...</div>
+    <button class="spin-btn" id="spinBtn">КРУТИТЬ</button>
+  </div>
+
+  <!-- Модальное окно фильтра -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <div class="modal-title">ДОСТУПНЫЕ БОССЫ</div>
+      <div class="boss-list" id="bossListContainer"></div>
+      
+      <div class="modal-actions">
+        <button class="btn-secondary" id="selectAllBtn">Выбрать всех</button>
+        <button class="btn-secondary" id="deselectAllBtn">Снять всех</button>
+      </div>
+      <button class="btn-primary" id="saveFilterBtn">СОХРАНИТЬ</button>
+    </div>
+  </div>
+
+  <script>
+    // Список боссов. Для добавления нового босса достаточно дописать его в этот список
+    const ALL_BOSSES = [
+      "Аждаха", "Андриус", "Владыка истлевшего первобытного пламени",
+      "Всепожирающий нарвал", "Двалин", "Дотторе 1 (Нод-Край)",
+      "Дотторе 2 (Сумеру)", "Райдэн", "Секи но Ками (Скарамучча)",
+      "Синьора", "Слуга (Арлекино)", "Страж оазиса Апепа",
+      "Чайльд", "Шахматы"
+    ].sort((a, b) => a.localeCompare(b, 'ru'));
+
+    // Сохранение состояния в браузере
+    let activeBosses = new Set(JSON.parse(localStorage.getItem('active_bosses')) || ALL_BOSSES);
+    let isMuted = localStorage.getItem('is_muted') === 'true';
+
+    // Геометрия барабана (адаптивная)
+    function getSlotPitch() {
+      const card = document.querySelector('.card');
+      if (!card) return 268;
+      return card.offsetHeight + 18;
+    }
+
+    // Web Audio API синтезатор
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playTick() {
+      if (isMuted || !audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1350, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.024);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.025);
+    }
+
+    function playWin() {
+      if (isMuted || !audioCtx) return;
+      [1046.50, 2093.00].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(idx === 0 ? 0.3 : 0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.38);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.39);
+      });
+    }
+
+    // Инициализация ленты
+    const tape = document.getElementById('tape');
+    let sequence = [];
+
+    function rebuildTape() {
+      tape.innerHTML = '';
+      const pool = ALL_BOSSES.filter(name => activeBosses.has(name));
+      if (!pool.length) return;
+
+      // Перемешиваем
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      sequence = [];
+      const repeatCount = Math.max(8, Math.floor(64 / pool.length));
+
+      for (let r = 0; r < repeatCount; r++) {
+        shuffled.forEach(name => {
+          sequence.push(name);
+          const card = document.createElement('div');
+          card.className = 'card';
+          
+          const img = document.createElement('img');
+          img.src = `bosses/${name.replace(/ /g, '_')}.png`;
+          img.alt = name;
+          
+          // Если картинки нет, показываем красивую заглушку с текстом
+          img.onerror = () => {
+            img.style.display = 'none';
+            const fallback = document.createElement('div');
+            fallback.className = 'fallback-text';
+            fallback.innerText = name;
+            card.appendChild(fallback);
+          };
+
+          card.appendChild(img);
+          tape.appendChild(card);
+        });
+      }
+
+      tape.style.transition = 'none';
+      tape.style.transform = 'translateY(0px)';
+    }
+
+    // Анимация вращения
+    const spinBtn = document.getElementById('spinBtn');
+    const rouletteBox = document.getElementById('rouletteBox');
+    const resultLabel = document.getElementById('resultLabel');
+    const filterBtn = document.getElementById('filterBtn');
+
+    let isSpinning = false;
+
+    spinBtn.addEventListener('click', () => {
+      initAudio();
+      if (isSpinning) return;
+
+      const pool = ALL_BOSSES.filter(name => activeBosses.has(name));
+      if (!pool.length) return alert('Все боссы отключены в настройках!');
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+      filterBtn.disabled = true;
+      rouletteBox.classList.remove('winner');
+      resultLabel.className = 'result-label spinning';
+      resultLabel.innerText = 'Судьба выбирает противника...';
+
+      // Сброс в 0
+      tape.style.transition = 'none';
+      tape.style.transform = 'translateY(0px)';
+      tape.offsetHeight; // Reflow
+
+      const slotPitch = getSlotPitch();
+      const targetInBase = Math.floor(Math.random() * pool.length);
+      const cycles = 4 + Math.floor(Math.random() * 3);
+      const targetIndex = Math.min(cycles * pool.length + targetInBase, sequence.length - 1);
+      const chosenName = sequence[targetIndex];
+      const targetY = targetIndex * slotPitch;
+
+      const duration = 4600;
+      tape.style.transition = `transform ${duration}ms cubic-bezier(0.12, 0.8, 0.25, 1)`;
+      tape.style.transform = `translateY(-${targetY}px)`;
+
+      // Звуки тиков при прокрутке
+      let start = null;
+      let lastCrossed = -1;
+
+      function step(timestamp) {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+        
+        // Математическое вычисление текущего смещения по кривой Безье
+        const currentTransform = getComputedStyle(tape).transform;
+        if (currentTransform !== 'none') {
+          const matrix = new DOMMatrix(currentTransform);
+          const currentY = Math.abs(matrix.m42);
+          const currentCard = Math.floor(currentY / slotPitch);
+          if (currentCard !== lastCrossed) {
+            lastCrossed = currentCard;
+            playTick();
+          }
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          // Финал
+          isSpinning = false;
+          spinBtn.disabled = false;
+          filterBtn.disabled = false;
+          rouletteBox.classList.add('winner');
+          resultLabel.className = 'result-label won';
+          resultLabel.innerText = chosenName;
+          playWin();
+        }
+      }
+      requestAnimationFrame(step);
+    });
+
+    // Настройка звука (Mute)
+    const muteBtn = document.getElementById('muteBtn');
+    function updateMuteUI() {
+      muteBtn.innerText = isMuted ? '🔇' : '🔊';
+      muteBtn.classList.toggle('muted', isMuted);
+    }
+    muteBtn.addEventListener('click', () => {
+      initAudio();
+      isMuted = !isMuted;
+      localStorage.setItem('is_muted', isMuted);
+      updateMuteUI();
+    });
+    updateMuteUI();
+
+    // Модальное окно фильтра
+    const modalOverlay = document.getElementById('modalOverlay');
+    const bossListContainer = document.getElementById('bossListContainer');
+
+    filterBtn.addEventListener('click', () => {
+      bossListContainer.innerHTML = '';
+      ALL_BOSSES.forEach(name => {
+        const item = document.createElement('div');
+        item.className = `boss-item ${activeBosses.has(name) ? 'active' : ''}`;
+        
+        const indicator = document.createElement('div');
+        indicator.className = 'indicator';
+        
+        const label = document.createElement('span');
+        label.innerText = name;
+
+        item.appendChild(indicator);
+        item.appendChild(label);
+
+        item.addEventListener('click', () => {
+          item.classList.toggle('active');
+        });
+
+        bossListContainer.appendChild(item);
+      });
+      modalOverlay.classList.add('open');
+    });
+
+    document.getElementById('selectAllBtn').addEventListener('click', () => {
+      document.querySelectorAll('.boss-item').forEach(el => el.classList.add('active'));
+    });
+
+    document.getElementById('deselectAllBtn').addEventListener('click', () => {
+      document.querySelectorAll('.boss-item').forEach(el => el.classList.remove('active'));
+    });
+
+    document.getElementById('saveFilterBtn').addEventListener('click', () => {
+      const selected = new Set();
+      document.querySelectorAll('.boss-item').forEach(el => {
+        if (el.classList.contains('active')) {
+          selected.add(el.querySelector('span').innerText);
+        }
+      });
+
+      if (!selected.size) {
+        alert('Необходимо оставить хотя бы одного босса!');
+        return;
+      }
+
+      activeBosses = selected;
+      localStorage.setItem('active_bosses', JSON.stringify([...activeBosses]));
+      rebuildTape();
+      resultLabel.className = 'result-label';
+      resultLabel.innerText = `Активно боссов: ${activeBosses.size}`;
+      modalOverlay.classList.remove('open');
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    // Первый запуск
+    rebuildTape();
+  </script>
+</body>
+</html>
